@@ -1,8 +1,8 @@
 
+#include "TofSensor.h"
 #include "Defines.h"
 #include "FS_function.h"
 #include "errorCodes.h"
-#include "TofSensor.h"
 #include "peopleCounter.h"
 TofSensor myTofSensor;
 PeopleCounter peopleCounter;
@@ -53,6 +53,8 @@ void Task12code(void * pvParameters);
 void Init_Task12();
 void Task13code(void * pvParameters);
 void Init_Task13();
+void Task14code(void * pvParameters);
+void Init_Task14();
 void Task15code(void * pvParameters);
 void Init_Task15();
 void Task16code(void * pvParameters);
@@ -252,6 +254,33 @@ struct data_waiting_t { // структура циклического буфе�
 data_waiting_t Data_Waiting[MAX_DATA_WAITING]; // Создайте структуру и получите указатель на нее
 int counter_waiting = 0; // для формирования циклического буфера из структуры 
 int num_string_now = -1; // номер строки для отправки или записи сейчас ("-1" это запись не требуется)
+
+//-----------------------------------------Прототипы функций--------------------------------------------------------
+
+void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info);
+void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info);
+void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info);
+void WiFi_AP_Start(WiFiEvent_t event, WiFiEventInfo_t info);
+void WiFi_AP_Connected(WiFiEvent_t event, WiFiEventInfo_t info);
+void WiFi_AP_Disconnected(WiFiEvent_t event, WiFiEventInfo_t info);
+void INIT_STA_WiFi();
+void INIT_AP_WiFi();
+void IRAM_ATTR OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
+void INIT_SLAVE_ESP_NOW();
+void boardInfo();
+byte crc8_bytes(byte *buffer, byte size);
+String displayFS();
+String getValue(String data, char separator, int index);
+void scanNetwork();
+void save_data_period_in_queue();
+void INIT_DEVAULT_SETTING();
+int findValueIndex(int rowCount);
+void DrowDatePlot(int index);
+void readAndParseData(fs::FS &fs, const char * path);
+
+//------------------------------------------------------------------------------------------------------------------
+
+
 
 void web_page_admin(){
   GP.BUILD_BEGIN(1100);

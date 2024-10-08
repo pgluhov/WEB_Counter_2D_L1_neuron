@@ -3,10 +3,10 @@
 
 #include "Sensor.h"
 #include <SparkFun_VL53L1X.h>
-#include <ComponentObject.h>
-#include <RangeSensor.h>
-#include <vl53l1x_class.h>
-#include <vl53l1_error_codes.h>
+#include <st_src/ComponentObject.h>
+#include <st_src/RangeSensor.h>
+#include <st_src/vl53l1x_class.h>
+#include <st_src/vl53l1_error_codes.h>
 
 class TofSensor : public Sensor{
 
