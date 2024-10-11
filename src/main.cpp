@@ -23,6 +23,7 @@ TaskHandle_t Task13;
 TaskHandle_t Task14;
 TaskHandle_t Task15;
 TaskHandle_t Task16;
+TaskHandle_t Task17;
 SemaphoreHandle_t wifi_mutex;
 SemaphoreHandle_t sensor_mutex;
 SemaphoreHandle_t flash_mutex;
@@ -59,6 +60,8 @@ void Task15code(void * pvParameters);
 void Init_Task15();
 void Task16code(void * pvParameters);
 void Init_Task16();
+void Task17code(void * pvParameters);
+void Init_Task17();
 
 QueueHandle_t QueueHandleUart; // Определить дескриптор очереди
 const int QueueElementSizeUart = 5;
@@ -1133,7 +1136,8 @@ void Task5code( void * pvParameters ){  // Таймер для записи ло
                if (rtc.getHour(true)==0){                  
                   if(secret.SW_CLEAN_DAY == 1){F_clean_day = 1; // очистить счетчик человеков в 00:00 если установлен флаг сброса счетчика
                   }
-                  F_update = 1; // Разрешить проверить обновление на сервере
+                  //F_update = 1;// Разрешить проверить обновление на сервере
+                  Init_Task17(); // Разрешить проверить обновления на сервере
                }
                vTaskDelay(61000/portTICK_PERIOD_MS); 
                break;      
@@ -1642,6 +1646,34 @@ void Init_Task16() {  //создаем задачу
     0);         /* Указываем пин для данного ядра */
   delay(50);
 }
+
+void Init_Task17(){
+xTaskCreatePinnedToCore( //создаем задачу, которая будет выполняться на ядре 0 с максимальным приоритетом (1)
+               Task17code,  /* Функция задачи. */
+               "Task17",    /* Ее имя. */
+               2048,        /* Размер стека функции */
+               NULL,        /* Параметры */
+               1,           /* Приоритет */
+               &Task17,     /* Дескриптор задачи для отслеживания */
+               1);          /* Указываем пин для данного ядра */                  
+  delay(10); 
+}
+
+void Task17code( void * pvParameters ){ // Отложенная задача для обновления прошивки с сервера
+  #if (ENABLE_DEBUG_TASK == 1)
+  Serial.print("Task17code running on core ");
+  Serial.println(xPortGetCoreID());
+  #endif
+    
+    vTaskDelay(3000/portTICK_PERIOD_MS);
+    long wait_ms = random(60000, 1800000);
+    vTaskDelay(wait_ms/portTICK_PERIOD_MS);
+    F_update = 1;
+    
+ vTaskDelete(NULL);
+} 
+
+
 
 void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info){
   Serial.println("Connected to STA successfully!");   

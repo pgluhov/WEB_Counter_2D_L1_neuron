@@ -3,8 +3,8 @@
 
 #include <Arduino.h>
 String DEVICE_NAME = "Vormatic 2D Counter (L1)"; // Имя девайса
-String CURRENT_VERSION_SW = "3.13";              // Текущая версиия прошивки 
-String VERSION_SW = "Software version 3.13";     // Текст для отображения
+String CURRENT_VERSION_SW = "3.14";              // Текущая версиия прошивки 
+String VERSION_SW = "Software version 3.14";     // Текст для отображения
 
 // ========== ДЕФАЙНЫ НАСТРОЕК ==========
 
