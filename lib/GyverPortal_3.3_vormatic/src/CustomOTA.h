@@ -138,18 +138,20 @@ public:
         #endif
         #endif
         
-        GP.BLOCK_TAB_BEGIN(F("OTA Update"));
+        GP.BLOCK_TAB_BEGIN(F("Обновление ПО"));
         if (!UpdateEnd) {
-            GP.OTA_FIRMWARE(F("OTA firmware"), true);
-            GP.OTA_FILESYSTEM(F("OTA filesystem"), true);
+            GP.BREAK();
+            GP.OTA_FIRMWARE(F("FIRMWARE"), true);
+            GP.BREAK();
+            //GP.OTA_FILESYSTEM(F("OTA filesystem"), true);
         } else if (UpdateError.length()) {
             GP.TITLE(String(F("Update error: ")) + UpdateError);
             GP.BUTTON_LINK(F("/ota_update"), F("Refresh"));
         } else {
-            GP.TITLE(F("Update Success!"));
-            GP.TITLE(F("Rebooting..."));
-            GP.BUTTON_LINK(F("/"), F("Home"));
-            GP.BUTTON_LINK(F("/ota_update"), F("Refresh"));
+            GP.TITLE(F("Выполнено успешно!"));
+            GP.TITLE(F("Перезагрузка..."));
+            GP.BUTTON_LINK(F("/"), F("Домой"));
+            //GP.BUTTON_LINK(F("/ota_update"), F("Refresh"));
         }
         GP.BLOCK_END();
         GP.BUILD_END();

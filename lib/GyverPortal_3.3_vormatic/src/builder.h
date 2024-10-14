@@ -1179,6 +1179,7 @@ struct Builder {
         BUTTON_LINK_RAW(url, value, st, width, F("miniButton"), name);
     }
     
+ 
     // ==================== КНОПКА-СКАЧКА ====================
     void BUTTON_DOWNLOAD_RAW(const String& url, const String& value, PGM_P st = GP_GREEN, const String& width = "", const String& cls = "") {
         *_GPP += F("<a style='text-decoration:none;' href='");
@@ -1906,10 +1907,10 @@ struct Builder {
         *_GPP += id;
         *_GPP += F("',{chart:{},\n"
         "rangeSelector:{buttons:[\n"
-        "{count:1,type:'minute',text:'1M'},\n"
-        "{count:1,type:'hour',text:'1H'},\n"
-        "{count:1,type:'day',text:'1D'},\n"
-        "{type:'all',text:'All'}],\n"
+        //"{count:1,type:'minute',text:'1M'},\n"
+        //"{count:1,type:'hour',text:'1H'},\n"
+        "{count:1,type:'day',text:'1 DAY'},\n"
+        "{type:'all',text:'7 DAY'}],\n"
         "inputEnabled:false,selected:0},\n"
         "time:{useUTC:false},\n"
         "credits:{enabled:false},series:[\n");
