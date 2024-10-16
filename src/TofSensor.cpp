@@ -44,20 +44,20 @@ int TofSensor::getDistanse_Z2(){
 int TofSensor::CallOffset(int distsnse){
   myTofSensor.calibrateOffset(distsnse);
   int Offset = myTofSensor.getOffset();
-  Serial.println();
-  Serial.print("Результат калибровки calibrateOffset=");
-  Serial.print(Offset);  
-  Serial.println();
+  //Serial.println();
+  //Serial.print("Результат калибровки calibrateOffset=");
+  //Serial.print(Offset);  
+  //Serial.println();
   return Offset;
 }
 
 int TofSensor::CallXTalk(int distsnse){
   myTofSensor.calibrateXTalk(distsnse);
   int XTalk = myTofSensor.getXTalk();
-  Serial.print("Результат калибровки calibrateXTalk=");  
-  Serial.print(XTalk);  
-  Serial.println();
-  Serial.println();
+  //Serial.print("Результат калибровки calibrateXTalk=");  
+  //Serial.print(XTalk);  
+  //Serial.println();
+  //Serial.println();
   return XTalk;
 }
 

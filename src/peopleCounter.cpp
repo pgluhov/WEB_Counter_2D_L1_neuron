@@ -6,7 +6,7 @@
 #define RESULT_FAIL -1
 #define PERSON_TOO_FAST -2
 
-#define DEBUG_COUNTER
+#define DEBUG_COUNTER 0
 
 enum zoneNames{ZONE1 = 0, ZONE2 = 1};
 enum events{NONE = 0,ENTERED = 1,LEFT = 2};
@@ -83,26 +83,26 @@ int PeopleCounter::getGlobalEvent(bool zone1, bool zone2){
   }
 
   if(Z1Event == ENTERED){
-    #ifdef DEBUG_COUNTER
+    #if (DEBUG_COUNTER ==1)
     Serial.println("Вошел в зону 1");
     #endif
     return EnteredZ1;
   }
   else if(Z1Event == LEFT){
-    #ifdef DEBUG_COUNTER
+    #if (DEBUG_COUNTER ==1)
     Serial.println("Вошел в зону 1");
     #endif
     return 2;
   }
 
   if(Z2Event == ENTERED){
-    #ifdef DEBUG_COUNTER
+    #if (DEBUG_COUNTER ==1)
     Serial.println("Вошел в зону 2");
     #endif
     return EnteredZ2;
   }
   else if(Z2Event == LEFT){
-    #ifdef DEBUG_COUNTER
+    #if (DEBUG_COUNTER ==1)
     Serial.println("Вошел в зону 2");
     #endif
     return 4;
@@ -111,12 +111,12 @@ int PeopleCounter::getGlobalEvent(bool zone1, bool zone2){
 }
 
 int PeopleCounter::evaluate(int entry, int exit){
-  #ifdef DEBUG_COUNTER
+  #if (DEBUG_COUNTER ==1)
   Serial.print("Оценивание: ");
   #endif
   
   if( ( entry == EnteredZ1 ) && ( exit == LeftZ2 ) ){
-    #ifdef DEBUG_COUNTER
+    #if (DEBUG_COUNTER ==1)
     Serial.println("+1");
     #endif    
     counter_indoor++;
@@ -124,14 +124,14 @@ int PeopleCounter::evaluate(int entry, int exit){
     //return +1; // оригинал
   }
   else if( ( entry == EnteredZ2 ) && ( exit == LeftZ1 ) ){
-    #ifdef DEBUG_COUNTER
+    #if (DEBUG_COUNTER ==1)
     Serial.println("-1");
     #endif
     counter_outdoor++; 
     return -1;
     //return -1; // оригинал 
   }
-  #ifdef DEBUG_COUNTER
+ #if (DEBUG_COUNTER ==1)
   Serial.println("not");
   #endif
   return 0; 

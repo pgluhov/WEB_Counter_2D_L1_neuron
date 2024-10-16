@@ -1143,6 +1143,8 @@ void Task5code( void * pvParameters ){  // Таймер для записи ло
                break;      
       case 20: save_data_period_in_queue(); vTaskDelay(61000/portTICK_PERIOD_MS); break;      
       case 40: save_data_period_in_queue(); vTaskDelay(61000/portTICK_PERIOD_MS); break;      
+
+      case 17: save_data_period_in_queue(); Init_Task17(); vTaskDelay(61000/portTICK_PERIOD_MS); break;    // тест  
       }
     }   
     vTaskDelay(10000/portTICK_PERIOD_MS);
@@ -1667,7 +1669,10 @@ void Task17code( void * pvParameters ){ // Отложенная задача д�
     
     vTaskDelay(3000/portTICK_PERIOD_MS);
     long wait_ms = random(60000, 1800000);
-    vTaskDelay(wait_ms/portTICK_PERIOD_MS);
+    Serial.print("задержка обновления: ");
+    Serial.println(wait_ms);
+    vTaskDelay(10000/portTICK_PERIOD_MS);
+    //vTaskDelay(wait_ms/portTICK_PERIOD_MS);
     F_update = 1;
     
  vTaskDelete(NULL);
@@ -2386,7 +2391,7 @@ void loop() {
   if(WiFi.status() == WL_CONNECTED && WiFi.softAPgetStationNum()==0 && F_update==1){ // Если есть подключение к сети и есть разрешение на проверку
     xSemaphoreTake(wifi_mutex, portMAX_DELAY); // Заблокировать WiFi для других задач
     F_update = 0;
-    secret.Led_mode == UPDATE_MODE; // Моргаем желтым
+    //secret.Led_mode == UPDATE_MODE; // Моргаем желтым
     char ServerName[100];
     int httpResponseCode = 0;
     String ResponseText = "";
@@ -2397,7 +2402,7 @@ void loop() {
       server += DEVICE_NAME;    
       server.toCharArray(ServerName, 100); 
       
-      httpResponseCode = 0;     
+      httpResponseCode = 0;      
       HTTPClient http;     
       http.begin(ServerName);
       httpResponseCode = http.GET(); // Отправляем запрос 
@@ -2422,11 +2427,19 @@ void loop() {
           rev_current = CURRENT_VERSION_SW.toFloat(); // текущая версия
           if(rev_server > rev_current){ 
               Serial.println("Начало обновления");
-              F_update = 0;                        
-              t_httpUpdate_return ret = ESPhttpUpdate.update(api_link); // Скачать прошивку и обновится
+              F_update = 0; 
+
+              WiFiClientSecure client;
+              client.setInsecure();
+
+              //t_httpUpdate_return ret = ESPhttpUpdate.update(api_link); // Скачать прошивку и обновится
+              t_httpUpdate_return ret = ESPhttpUpdate.update("https://api.pg-corp.nohost.me/site/SW-2D/firmware.bin");
+              //t_httpUpdate_return ret = ESPhttpUpdate.update("https://bitrix.aedon.ru/docs/pub/5deaf83b83b71f6851928d70c2282d19/download/?&token=unwyq35pby1c");
+                           
               switch(ret) {
                 case HTTP_UPDATE_FAILED:
                 Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+                  Init_Task17();
                   break;
                 case HTTP_UPDATE_NO_UPDATES:
                 Serial.println("HTTP_UPDATE_NO_UPDATES");
