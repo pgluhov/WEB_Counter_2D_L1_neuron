@@ -1723,7 +1723,7 @@ void INIT_STA_WiFi(){
 void INIT_AP_WiFi(){ 
   if (F_init_ap == 0){
     F_init_ap = 1;   
-    IPAddress local_IP(192,168,0,100);
+    IPAddress local_IP(192,168,0,100); // IP в режиме точки доступа
     IPAddress gateway(192,168,0,1);
     IPAddress subnet(255,255,255,0);
     Serial.print("Setting soft-AP configuration ... ");                                   //  "Задаем настройки программной точки доступа ... "
