@@ -1,4 +1,5 @@
 
+#include <Arduino.h>
 #include "TofSensor.h"
 #include "Defines.h"
 #include "FS_function.h"
@@ -121,10 +122,10 @@ struct struct_uart_rx{  // Структура приема данных от г�
 struct_uart_rx  buff_rx_uart;
 
 #include <WiFi.h>
+#include <HTTPClient.h> 
 #include <ESP32httpUpdate.h>
 bool F_update = 0;
 WiFiServer server(80);
-#include <HTTPClient.h>
 #include <ArduinoJson.h>
 int countNetworkFound = 0; // количество найденных сетей WiFi
 String networkFound[35];   // Названия найденных сетей WiFi
@@ -2429,8 +2430,7 @@ void loop() {
               Serial.println("Начало обновления");
               F_update = 0; 
 
-              WiFiClientSecure client;
-              client.setInsecure();
+              
 
               //t_httpUpdate_return ret = ESPhttpUpdate.update(api_link); // Скачать прошивку и обновится
               t_httpUpdate_return ret = ESPhttpUpdate.update("https://api.pg-corp.nohost.me/site/SW-2D/firmware.bin");

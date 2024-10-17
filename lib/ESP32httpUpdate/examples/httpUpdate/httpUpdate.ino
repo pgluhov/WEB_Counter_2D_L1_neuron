@@ -6,9 +6,7 @@
  */
 
 #include <Arduino.h>
-
 #include <WiFi.h>
-
 #include <HTTPClient.h>
 #include <ESP32httpUpdate.h>
 
@@ -29,7 +27,8 @@ void setup() {
         delay(1000);
     }
 
-    WiFi.begin("SSID", "PASSWORD");
+    WiFi.begin("TP-LINK", "F5ags4pv");
+    delay(10000);
 
 }
 
@@ -37,7 +36,7 @@ void loop() {
     // wait for WiFi connection
     if((WiFi.status() == WL_CONNECTED)) {
 
-        t_httpUpdate_return ret = ESPhttpUpdate.update("http://server/file.bin");
+        t_httpUpdate_return ret = ESPhttpUpdate.update("https://api.pg-corp.nohost.me/site/SW-2D/firmware.bin");
 
         switch(ret) {
             case HTTP_UPDATE_FAILED:
