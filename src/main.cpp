@@ -1,5 +1,4 @@
 
-#include <Arduino.h>
 #include "TofSensor.h"
 #include "Defines.h"
 #include "FS_function.h"
@@ -122,10 +121,10 @@ struct struct_uart_rx{  // Структура приема данных от г�
 struct_uart_rx  buff_rx_uart;
 
 #include <WiFi.h>
-#include <HTTPClient.h> 
 #include <ESP32httpUpdate.h>
 bool F_update = 0;
 WiFiServer server(80);
+#include <HTTPClient.h>
 #include <ArduinoJson.h>
 int countNetworkFound = 0; // количество найденных сетей WiFi
 String networkFound[35];   // Названия найденных сетей WiFi
@@ -1160,7 +1159,7 @@ xTaskCreatePinnedToCore( //создаем задачу, которая буде�
                NULL,        /* Параметры */
                0,           /* Приоритет */
                &Task5,      /* Дескриптор задачи для отслеживания */
-               1);          /* Указываем пин для данного ядра */                  
+               0);          /* Указываем пин для данного ядра */                  
   delay(10); 
 }
 
@@ -1650,17 +1649,7 @@ void Init_Task16() {  //создаем задачу
   delay(50);
 }
 
-void Init_Task17(){
-xTaskCreatePinnedToCore( //создаем задачу, которая будет выполняться на ядре 0 с максимальным приоритетом (1)
-               Task17code,  /* Функция задачи. */
-               "Task17",    /* Ее имя. */
-               2048,        /* Размер стека функции */
-               NULL,        /* Параметры */
-               1,           /* Приоритет */
-               &Task17,     /* Дескриптор задачи для отслеживания */
-               1);          /* Указываем пин для данного ядра */                  
-  delay(10); 
-}
+
 
 void Task17code( void * pvParameters ){ // Отложенная задача для обновления прошивки с сервера
   #if (ENABLE_DEBUG_TASK == 1)
@@ -1674,12 +1663,38 @@ void Task17code( void * pvParameters ){ // Отложенная задача д�
     Serial.println(wait_ms);
     vTaskDelay(10000/portTICK_PERIOD_MS);
     //vTaskDelay(wait_ms/portTICK_PERIOD_MS);
-    F_update = 1;
+    //F_update = 1;
+    if((WiFi.status() == WL_CONNECTED)) {
+
+        t_httpUpdate_return ret = ESPhttpUpdate.update("https://api.pg-corp.nohost.me/site/SW-2D/firmware.bin");
+
+        switch(ret) {
+            case HTTP_UPDATE_FAILED:
+                Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+                break;
+            case HTTP_UPDATE_NO_UPDATES:
+                Serial.println("HTTP_UPDATE_NO_UPDATES");
+                break;
+            case HTTP_UPDATE_OK:
+                Serial.println("HTTP_UPDATE_OK");
+                break;
+        }
+    }
     
  vTaskDelete(NULL);
 } 
 
-
+void Init_Task17(){
+xTaskCreatePinnedToCore( //создаем задачу, которая будет выполняться на ядре 0 с максимальным приоритетом (1)
+               Task17code,  /* Функция задачи. */
+               "Task17",    /* Ее имя. */
+               20000,       /* Размер стека функции */
+               NULL,        /* Параметры */
+               1,           /* Приоритет */
+               &Task17,     /* Дескриптор задачи для отслеживания */
+               1);          /* Указываем пин для данного ядра */                  
+  delay(10); 
+}
 
 void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info){
   Serial.println("Connected to STA successfully!");   
@@ -2428,15 +2443,14 @@ void loop() {
           rev_current = CURRENT_VERSION_SW.toFloat(); // текущая версия
           if(rev_server > rev_current){ 
               Serial.println("Начало обновления");
+              //update_sw(api_link);
               F_update = 0; 
-
-              
+              Init_Task17();             
 
               //t_httpUpdate_return ret = ESPhttpUpdate.update(api_link); // Скачать прошивку и обновится
-              t_httpUpdate_return ret = ESPhttpUpdate.update("https://api.pg-corp.nohost.me/site/SW-2D/firmware.bin");
-              //t_httpUpdate_return ret = ESPhttpUpdate.update("https://bitrix.aedon.ru/docs/pub/5deaf83b83b71f6851928d70c2282d19/download/?&token=unwyq35pby1c");
-                           
-              switch(ret) {
+              //t_httpUpdate_return ret = ESPhttpUpdate.update("https://api.pg-corp.nohost.me/site/SW-2D/firmware.bin");
+                                         
+              /*switch(ret) {
                 case HTTP_UPDATE_FAILED:
                 Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
                   Init_Task17();
@@ -2449,6 +2463,7 @@ void loop() {
                   break;
                 }
                //ESP.restart();
+               */
              }     
           }
     xSemaphoreGive(wifi_mutex); // Разблокировать WiFi для других задач
