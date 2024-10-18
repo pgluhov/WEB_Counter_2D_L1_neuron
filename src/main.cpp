@@ -122,7 +122,10 @@ struct_uart_rx  buff_rx_uart;
 
 #include <WiFi.h>
 #include <ESP32httpUpdate.h>
-bool F_update = 0;
+bool F_update = 0;   // Флаг для начала обновления
+char link_sw[150];   // Ссылка для скачивания прошивки
+int count_err = 0;   // Количество ошибочных попыток обновления
+int max_err = 3;     // Максимальное количество ошибок, после которого откладываем на потом
 WiFiServer server(80);
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
@@ -1135,16 +1138,18 @@ void Task5code( void * pvParameters ){  // Таймер для записи ло
       case  0: save_data_period_in_queue(); 
                if (rtc.getHour(true)==0){                  
                   if(secret.SW_CLEAN_DAY == 1){F_clean_day = 1; // очистить счетчик человеков в 00:00 если установлен флаг сброса счетчика
+                  F_update = 1;// Разрешить проверить обновление на сервере
                   }
-                  //F_update = 1;// Разрешить проверить обновление на сервере
-                  Init_Task17(); // Разрешить проверить обновления на сервере
+                  //F_update = 1;// Разрешить проверить обновление на сервере                  
                }
                vTaskDelay(61000/portTICK_PERIOD_MS); 
                break;      
       case 20: save_data_period_in_queue(); vTaskDelay(61000/portTICK_PERIOD_MS); break;      
       case 40: save_data_period_in_queue(); vTaskDelay(61000/portTICK_PERIOD_MS); break;      
 
-      case 17: save_data_period_in_queue(); Init_Task17(); vTaskDelay(61000/portTICK_PERIOD_MS); break;    // тест  
+      
+      case 25: save_data_period_in_queue(); F_update=1; vTaskDelay(61000/portTICK_PERIOD_MS); break;    // тест  
+      //case 59: save_data_period_in_queue(); F_update=1; vTaskDelay(61000/portTICK_PERIOD_MS); break;    // тест  
       }
     }   
     vTaskDelay(10000/portTICK_PERIOD_MS);
@@ -1603,7 +1608,7 @@ void Task16code(void* pvParameters) {  // Обработка приема дан
   
     for (;;) { 
       if(QueueHandleUart != NULL){ // Проверка работоспособности просто для того, чтобы убедиться, что очередь действительно существует
-      int ret = xQueueReceive(QueueHandleUart, &message, portMAX_DELAY);
+        int ret = xQueueReceive(QueueHandleUart, &message, portMAX_DELAY);
       if(ret == pdPASS){ 
         secret.key_3 = message.key_3; 
         secret.ID_SERIAL1 = message.x;
@@ -1621,17 +1626,8 @@ void Task16code(void* pvParameters) {  // Обработка приема дан
         buff_tx_uart.key_2 = random(1294967295, 3294967295);
         buff_tx_uart.key_3 = random(20695, 59895);        
         buff_tx_uart.crc = crc8_bytes((byte*)&buff_tx_uart, sizeof(buff_tx_uart) - 1);
-        Serial.write((byte*)&buff_tx_uart, sizeof(buff_tx_uart));        
-        
-        #if (ENABLE_DEBUG_UART == 1)
-        Serial.println();
-        Serial.println("Task16 получены данные от  serialEvent" );         
-        Serial.print("Task16 переменная 1: " );
-        Serial.println(message.x); 
-        Serial.print("Task16 переменная 2: " );
-        Serial.println(message.y);        
-        Serial.println(); 
-        #endif 
+        Serial.write((byte*)&buff_tx_uart, sizeof(buff_tx_uart));                
+   
       }
     }
   }  
@@ -1660,17 +1656,23 @@ void Task17code( void * pvParameters ){ // Отложенная задача д�
     vTaskDelay(3000/portTICK_PERIOD_MS);
     long wait_ms = random(60000, 1800000);
     Serial.print("задержка обновления: ");
-    Serial.println(wait_ms);
-    vTaskDelay(10000/portTICK_PERIOD_MS);
-    //vTaskDelay(wait_ms/portTICK_PERIOD_MS);
-    //F_update = 1;
-    if((WiFi.status() == WL_CONNECTED)) {
+    Serial.print(wait_ms/1000);
+    Serial.println(" сек");
+    //vTaskDelay(10000/portTICK_PERIOD_MS);
+    vTaskDelay(wait_ms/portTICK_PERIOD_MS);  
 
-        t_httpUpdate_return ret = ESPhttpUpdate.update("https://api.pg-corp.nohost.me/site/SW-2D/firmware.bin");
-
+    if( WiFi.status() == WL_CONNECTED ){
+    xSemaphoreTake(wifi_mutex, portMAX_DELAY); // Заблокировать WiFi для других задач
+    t_httpUpdate_return ret = ESPhttpUpdate.update(link_sw);        
         switch(ret) {
             case HTTP_UPDATE_FAILED:
                 Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+                count_err++;
+                if(count_err <= max_err){F_update = 1;} // повторяем попытку обновления
+                if(count_err > max_err){count_err = 0;} // сбрасываем счетчик попыток
+                Serial.println("не получается обновиться");
+                Serial.print("count_err ");
+                Serial.println(count_err);
                 break;
             case HTTP_UPDATE_NO_UPDATES:
                 Serial.println("HTTP_UPDATE_NO_UPDATES");
@@ -1679,8 +1681,11 @@ void Task17code( void * pvParameters ){ // Отложенная задача д�
                 Serial.println("HTTP_UPDATE_OK");
                 break;
         }
-    }
-    
+ xSemaphoreGive(wifi_mutex); // Разблокировать WiFi для других задач   
+ }
+
+    if( WiFi.status() != WL_CONNECTED ){F_update = 0;} // если нет соединения отменить обновление 
+
  vTaskDelete(NULL);
 } 
 
@@ -1695,6 +1700,8 @@ xTaskCreatePinnedToCore( //создаем задачу, которая буде�
                1);          /* Указываем пин для данного ядра */                  
   delay(10); 
 }
+
+
 
 void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info){
   Serial.println("Connected to STA successfully!");   
@@ -2406,7 +2413,7 @@ void loop() {
   
   if(WiFi.status() == WL_CONNECTED && WiFi.softAPgetStationNum()==0 && F_update==1){ // Если есть подключение к сети и есть разрешение на проверку
     xSemaphoreTake(wifi_mutex, portMAX_DELAY); // Заблокировать WiFi для других задач
-    F_update = 0;
+    //F_update = 0;
     //secret.Led_mode == UPDATE_MODE; // Моргаем желтым
     char ServerName[100];
     int httpResponseCode = 0;
@@ -2431,8 +2438,13 @@ void loop() {
        if (error) {
            Serial.print(F("deserializeJson() failed: "));
            Serial.println(error.f_str());
+           delay(5000);
+           count_err++;
+           if(count_err > max_err){count_err = 0; F_update = 0;} // сбрасываем счетчик попыток и ждем следующего запроса
            }
        if (!error) {  
+          F_update  = 0; 
+          //count_err = 0;
           String api_version = Json["items"][0]["version"];
           String api_link = Json["items"][0]["link"];
           Serial.print("version "); 
@@ -2442,9 +2454,9 @@ void loop() {
           rev_server = api_version.toFloat();         // версия на сервере
           rev_current = CURRENT_VERSION_SW.toFloat(); // текущая версия
           if(rev_server > rev_current){ 
-              Serial.println("Начало обновления");
-              //update_sw(api_link);
-              F_update = 0; 
+              Serial.println("Запускаем обновление");              
+              //F_update = 0;            
+              api_link.toCharArray(link_sw, sizeof(link_sw)); 
               Init_Task17();             
 
               //t_httpUpdate_return ret = ESPhttpUpdate.update(api_link); // Скачать прошивку и обновится
