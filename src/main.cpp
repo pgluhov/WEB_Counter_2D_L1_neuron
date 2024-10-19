@@ -125,7 +125,7 @@ struct_uart_rx  buff_rx_uart;
 bool F_update = 0;   // Флаг для начала обновления
 char link_sw[150];   // Ссылка для скачивания прошивки
 int count_err = 0;   // Количество ошибочных попыток обновления
-int max_err = 3;     // Максимальное количество ошибок, после которого откладываем на потом
+int max_err = 2;     // Максимальное количество ошибок, после которого перезагрузка и ещё одна попытка
 WiFiServer server(80);
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
@@ -236,7 +236,9 @@ struct LoginPass {
   uint16_t key_4;
   int SensorOffset;       // калибровочная константа сенсора
   int SensorXTalk;        // калибровочная константа сенсора
-  int DistanseCallReal;    // дистанция от датчика до препятствия для калибраовки
+  int DistanseCallReal;   // дистанция от датчика до препятствия для калибраовки
+  bool update_sw;         // флаг для обновления после перезагрузки, если произошли max_err неудачных попыток
+  bool reboot_today;      // перезагрузка сегодня 1 была 0 не было
 };
 LoginPass secret;
 
@@ -284,9 +286,7 @@ int findValueIndex(int rowCount);
 void DrowDatePlot(int index);
 void readAndParseData(fs::FS &fs, const char * path);
 
-//------------------------------------------------------------------------------------------------------------------
-
-
+//--------------------------------------Работа WEB интерфейса--------------------------------------------------------
 
 void web_page_admin(){
   GP.BUILD_BEGIN(1100);
@@ -757,6 +757,29 @@ if (portal.update()){
   }
 }
 
+//-----------------------------------------Задачи FreeRTOS-----------------------------------------------------------
+
+/*
+Задача  Ядро  Приоритет Описание
+Task1     0       5     Функция работы с TOF сенсором
+Task2     0       4     Функция загрузки данных с tof в основную программу
+Task3     1       4     Функция записи лога в файл, БД, API
+Task4     1       5     Синхронизация даты времени с NTP-сервера
+Task5     0       3     Таймер для записи лога в файл и БД
+Task6     0       2     Отслеживание кнопки сброса
+Task7     1       2     Отправка данных ESP NOW
+Task8     1       2     Watch Dog обмена данными ESP NOW
+Task9     1       2     Функция для работы зуммера
+Task10    1       2     Функция для работы светодиода
+Task11    1       2     Отслеживание состояния буфера неотправленный/незаписанных данных
+Task12    1       1     Обновление строковой переменной времени для Web интерфейса
+Task13    0       2     Сканирование WiFi
+Task14    0       0     Калибровка TOF сенсора
+Task15    0       1     Перезагрузка контроллера
+Task16    0       1     Обработка приема данных от Serial
+Task17    1       1     Отложенная задача для обновления прошивки с сервера
+*/
+
 void Task1code( void * pvParameters ){  // Функция работы с TOF сенсором
   #if (ENABLE_DEBUG_TASK == 1)
   Serial.print("Task1code running on core ");
@@ -792,7 +815,7 @@ void Init_Task1(){
                "Task1",     /* Ее имя. */
                10000,       /* Размер стека функции */
                NULL,        /* Параметры */
-               0,           /* Приоритет */
+               5,           /* Приоритет */
                &Task1,      /* Дескриптор задачи для отслеживания */
                0);          /* Указываем пин для данного ядра */                  
   delay(10);  
@@ -838,7 +861,7 @@ void Init_Task2(){
                "Task2",     /* Ее имя. */
                4096,        /* Размер стека функции */
                NULL,        /* Параметры */
-               1,           /* Приоритет */
+               4,           /* Приоритет */
                &Task2,      /* Дескриптор задачи для отслеживания */
                0);          /* Указываем пин для данного ядра */                  
   delay(10);  
@@ -1066,7 +1089,7 @@ xTaskCreatePinnedToCore( //создаем задачу, которая буде�
                "Task3",     /* Ее имя. */
                20000,       /* Размер стека функции */
                NULL,        /* Параметры */
-               0,           /* Приоритет */
+               4,           /* Приоритет */
                &Task3,      /* Дескриптор задачи для отслеживания */
                1);          /* Указываем пин для данного ядра */                  
   delay(10); 
@@ -1116,7 +1139,7 @@ xTaskCreatePinnedToCore( //создаем задачу, которая буде�
                "Task4",     /* Ее имя. */
                4096,        /* Размер стека функции */
                NULL,        /* Параметры */
-               0,           /* Приоритет */
+               5,           /* Приоритет */
                &Task4,      /* Дескриптор задачи для отслеживания */
                1);          /* Указываем пин для данного ядра */                  
   delay(10); 
@@ -1137,18 +1160,19 @@ void Task5code( void * pvParameters ){  // Таймер для записи ло
     switch (minutes) {
       case  0: save_data_period_in_queue(); 
                if (rtc.getHour(true)==0){                  
-                  if(secret.SW_CLEAN_DAY == 1){F_clean_day = 1; // очистить счетчик человеков в 00:00 если установлен флаг сброса счетчика
-                  F_update = 1;// Разрешить проверить обновление на сервере
+                  if(secret.SW_CLEAN_DAY == 1){F_clean_day = 1;} // очистить счетчик человеков в 00:00 если установлен флаг сброса счетчика
+                  F_update = 1;  // Разрешить проверить обновление на сервере
+                  secret.reboot_today = 0; // в полночь сбросить статус перезагрузки
+                  EEPROM.put(0, secret); 
+                  EEPROM.commit();                                                     
                   }
-                  //F_update = 1;// Разрешить проверить обновление на сервере                  
-               }
                vTaskDelay(61000/portTICK_PERIOD_MS); 
                break;      
       case 20: save_data_period_in_queue(); vTaskDelay(61000/portTICK_PERIOD_MS); break;      
       case 40: save_data_period_in_queue(); vTaskDelay(61000/portTICK_PERIOD_MS); break;      
 
       
-      case 25: save_data_period_in_queue(); F_update=1; vTaskDelay(61000/portTICK_PERIOD_MS); break;    // тест  
+      case 5: save_data_period_in_queue(); F_update=1; vTaskDelay(61000/portTICK_PERIOD_MS); break;    // тест  
       //case 59: save_data_period_in_queue(); F_update=1; vTaskDelay(61000/portTICK_PERIOD_MS); break;    // тест  
       }
     }   
@@ -1157,12 +1181,12 @@ void Task5code( void * pvParameters ){  // Таймер для записи ло
 }  
 
 void Init_Task5(){
-xTaskCreatePinnedToCore( //создаем задачу, которая будет выполняться на ядре 0 с максимальным приоритетом (1)
+xTaskCreatePinnedToCore( //создаем задачу, которая будет выполняться на ядре 0 с максимальным приоритетом (3)
                Task5code,   /* Функция задачи. */
                "Task5",     /* Ее имя. */
                4096,        /* Размер стека функции */
                NULL,        /* Параметры */
-               0,           /* Приоритет */
+               3,           /* Приоритет */
                &Task5,      /* Дескриптор задачи для отслеживания */
                0);          /* Указываем пин для данного ядра */                  
   delay(10); 
@@ -1202,7 +1226,7 @@ xTaskCreatePinnedToCore( //создаем задачу, которая буде�
                "Task6",     /* Ее имя. */
                4096,        /* Размер стека функции */
                NULL,        /* Параметры */
-               0,           /* Приоритет */
+               2,           /* Приоритет */
                &Task6,      /* Дескриптор задачи для отслеживания */
                0);          /* Указываем пин для данного ядра */                  
   delay(10); 
@@ -1383,15 +1407,7 @@ void Task10code(void* pvParameters) {   // Функция для работы с
       ledcWrite(pwmChannelRed, pwmBrightnessLed);      
       vTaskDelay(100/portTICK_PERIOD_MS);
       ledcWrite(pwmChannelRed, 0);           
-    }
-    if (secret.Led_mode == UPDATE_MODE){
-      vTaskDelay(100/portTICK_PERIOD_MS);
-      ledcWrite(pwmChannelRed, pwmBrightnessLed);  
-      ledcWrite(pwmChannelGreen, pwmBrightnessLed);     
-      vTaskDelay(100/portTICK_PERIOD_MS);
-      ledcWrite(pwmChannelRed, 0); 
-      ledcWrite(pwmChannelGreen, 0);          
-    }
+    }    
   }
 }
 
@@ -1510,7 +1526,7 @@ xTaskCreatePinnedToCore( //создаем задачу, которая буде�
                "Task12",    /* Ее имя. */
                4096,        /* Размер стека функции */
                NULL,        /* Параметры */
-               0,           /* Приоритет */
+               1,           /* Приоритет */
                &Task12,     /* Дескриптор задачи для отслеживания */
                1);          /* Указываем пин для данного ядра */                  
   delay(10); 
@@ -1534,7 +1550,7 @@ xTaskCreatePinnedToCore( //создаем задачу, которая буде�
                "Task13",    /* Ее имя. */
                10000,        /* Размер стека функции */
                NULL,        /* Параметры */
-               0,           /* Приоритет */
+               2,           /* Приоритет */
                &Task13,     /* Дескриптор задачи для отслеживания */
                0);          /* Указываем пин для данного ядра */                  
   delay(10); 
@@ -1592,7 +1608,7 @@ xTaskCreatePinnedToCore( //создаем задачу, которая буде�
                "Task15",    /* Ее имя. */
                10000,        /* Размер стека функции */
                NULL,        /* Параметры */
-               0,           /* Приоритет */
+               1,           /* Приоритет */
                &Task15,     /* Дескриптор задачи для отслеживания */
                0);          /* Указываем пин для данного ядра */                  
   delay(10); 
@@ -1645,8 +1661,6 @@ void Init_Task16() {  //создаем задачу
   delay(50);
 }
 
-
-
 void Task17code( void * pvParameters ){ // Отложенная задача для обновления прошивки с сервера
   #if (ENABLE_DEBUG_TASK == 1)
   Serial.print("Task17code running on core ");
@@ -1657,19 +1671,27 @@ void Task17code( void * pvParameters ){ // Отложенная задача д�
     long wait_ms = random(60000, 1800000);
     Serial.print("задержка обновления: ");
     Serial.print(wait_ms/1000);
-    Serial.println(" сек");
-    //vTaskDelay(10000/portTICK_PERIOD_MS);
-    vTaskDelay(wait_ms/portTICK_PERIOD_MS);  
+    Serial.println(" сек");    
+    vTaskDelay(wait_ms/portTICK_PERIOD_MS);       
 
     if( WiFi.status() == WL_CONNECTED ){
-    xSemaphoreTake(wifi_mutex, portMAX_DELAY); // Заблокировать WiFi для других задач
-    t_httpUpdate_return ret = ESPhttpUpdate.update(link_sw);        
+      xSemaphoreTake(wifi_mutex, portMAX_DELAY); // Заблокировать WiFi для других задач
+      t_httpUpdate_return ret = ESPhttpUpdate.update(link_sw);        
         switch(ret) {
             case HTTP_UPDATE_FAILED:
                 Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
                 count_err++;
                 if(count_err <= max_err){F_update = 1;} // повторяем попытку обновления
-                if(count_err > max_err){count_err = 0;} // сбрасываем счетчик попыток
+                if(count_err > max_err) {count_err = 0; // Достигнуто максимальное количество попыток перезагружаем контроллер
+                  if(secret.reboot_today == 0){         // повторить попытку обновления после перезагрузки если сегодня ещё не перезагружались
+                    secret.update_sw = 1;                 
+                    secret.reboot_today = 1;
+                    EEPROM.put(0, secret); 
+                    EEPROM.commit();
+                    ESP.restart();
+                    }
+                  }
+                Serial.println();
                 Serial.println("не получается обновиться");
                 Serial.print("count_err ");
                 Serial.println(count_err);
@@ -1679,10 +1701,15 @@ void Task17code( void * pvParameters ){ // Отложенная задача д�
                 break;
             case HTTP_UPDATE_OK:
                 Serial.println("HTTP_UPDATE_OK");
+                if(secret.update_sw == 1){
+                  secret.update_sw = 0; 
+                  EEPROM.put(0, secret); 
+                  EEPROM.commit(); 
+                  }
                 break;
         }
- xSemaphoreGive(wifi_mutex); // Разблокировать WiFi для других задач   
- }
+    xSemaphoreGive(wifi_mutex); // Разблокировать WiFi для других задач   
+    }
 
     if( WiFi.status() != WL_CONNECTED ){F_update = 0;} // если нет соединения отменить обновление 
 
@@ -1701,7 +1728,7 @@ xTaskCreatePinnedToCore( //создаем задачу, которая буде�
   delay(10); 
 }
 
-
+//---------------------------------------Работа WiFi-----------------------------------------------------------------
 
 void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info){
   Serial.println("Connected to STA successfully!");   
@@ -1766,31 +1793,14 @@ void INIT_AP_WiFi(){
   }
 }
 
+//---------------------------------------Работа ESP_NOW--------------------------------------------------------------
+
 void IRAM_ATTR OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) { // Callback when data is sent
   
-  #if (ENABLE_DEBUG == 1)
-  Serial.println();
-  Serial.println("Callback when data is sent");
-  Serial.print("Send to device mac: ");  
-  for (int i=0; i<6; i++){
-    Serial.print(mac_addr[i], HEX);
-    Serial.print(" ");
-    }    
-  Serial.print("\r\nLast Packet Send Status:\t");
-  Serial.print(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success\t" : "Delivery Fail\t\t");
-  Serial.println(status);  
-  #endif 
-
   if (memcmp (mac_addr, MasterAddress, 6) == 0){  // ноль, если одинаковы
-    if (status == 0){count_lost_tx_1 = 0; 
-    #if (ENABLE_DEBUG == 1)
-    Serial.println("Compare master OK"); // Отправка успешна
-    #endif
+    if (status == 0){count_lost_tx_1 = 0;     
     }
-    if (status != 0){count_lost_tx_1++;  
-    #if (ENABLE_DEBUG == 1) 
-    Serial.println("Compare master ERR" ); // Ошибка отправки данных
-    #endif
+    if (status != 0){count_lost_tx_1++;     
     }
     } 
   #if (ENABLE_DEBUG == 1)
@@ -1809,10 +1819,7 @@ void IRAM_ATTR OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int 
 
 }
 
-void IRAM_ATTR serialEvent(){   
-  #if (ENABLE_DEBUG_UART == 1)  
-  Serial.println("Есть данные в прерывании Serial");  
-  #endif
+void IRAM_ATTR serialEvent(){    
   if (Serial.readBytes((byte*)&buff_rx_uart, sizeof(buff_rx_uart))) {
   byte crc = crc8_bytes((byte*)&buff_rx_uart, sizeof(buff_rx_uart));
 
@@ -1874,16 +1881,16 @@ void INIT_SLAVE_ESP_NOW(){
    
 }
 
+//---------------------------------------Разные функции--------------------------------------------------------------
+
 void boardInfo(){
   Serial.println(); 
   Serial.println("****************************************");  
   chip = ESP.getEfuseMac(); //The chip ID is essentially its MAC address(length: 6 bytes).  
   Serial.printf("MCU chip ID:\t\t%04X", (uint16_t)(chip >> 32)); //print High 2 bytes
   Serial.printf("%08X\n", (uint32_t)chip); //print Low 4bytes. 
-  //Serial.print("ESP32 chip:\t\t");  
-  //Serial.println(chip); 
   Serial.printf("Flash chip frequency:\t%d (Hz)\n", ESP.getFlashChipSpeed());
-  Serial.printf("Flash chip size:\t%d (bytes)\n", ESP.getFlashChipSize());
+  Serial.printf("Flash chip size:\t\t%d (bytes)\n", ESP.getFlashChipSize());
   Serial.printf("Free heap size:\t\t%d (bytes)\n", ESP.getFreeHeap());
   Serial.println("****************************************");
   Serial.println();  
@@ -2037,8 +2044,8 @@ void INIT_DEVAULT_SETTING(){
     String passSta = "12345678";     
     String webLogin = "admin";
     String webPassword = "admin";  
-    hostapi.toCharArray(secret.API_HOST, 60);  
-    hostdb.toCharArray(secret.DB_HOST, 60);
+    hostapi.toCharArray(secret.API_HOST, sizeof(secret.API_HOST));  
+    hostdb.toCharArray(secret.DB_HOST, sizeof(secret.DB_HOST));
     namedb.toCharArray(secret.DB_NAME, 50);
     userdb.toCharArray(secret.DB_USER, 20);
     passdb.toCharArray(secret.DB_PASS, 20);
@@ -2097,7 +2104,9 @@ void INIT_DEVAULT_SETTING(){
     TextDec += String(ArrMacInt[4]);
     TextDec += ":";
     TextDec += String(ArrMacInt[5]);
-    TextDec.toCharArray(secret.Text_This_Mac_Dec, 40);            
+    TextDec.toCharArray(secret.Text_This_Mac_Dec, 40);  
+    secret.update_sw = 0;    
+    secret.reboot_today = 0;      
     EEPROM.put(0, secret);   // сохраняем
     EEPROM.commit();         // записываем
 }
@@ -2400,7 +2409,9 @@ void setup() {
   Init_Task6();   // Отслеживание кнопки сброса
   Init_Task9();   // Функция для работы зуммера
   Init_Task10();  // Функция для работы светодиода 
-  Init_Task12();  // Обновление строковой переменной времени для Web интерфейса   
+  Init_Task12();  // Обновление строковой переменной времени для Web интерфейса  
+
+  if(secret.update_sw == 1){F_update = 1; delay(5000);} 
 }
 
 void loop() {
@@ -2412,72 +2423,49 @@ void loop() {
   }
   
   if(WiFi.status() == WL_CONNECTED && WiFi.softAPgetStationNum()==0 && F_update==1){ // Если есть подключение к сети и есть разрешение на проверку
-    xSemaphoreTake(wifi_mutex, portMAX_DELAY); // Заблокировать WiFi для других задач
-    //F_update = 0;
-    //secret.Led_mode == UPDATE_MODE; // Моргаем желтым
+    xSemaphoreTake(wifi_mutex, portMAX_DELAY); // Заблокировать WiFi для других задач    
     char ServerName[100];
     int httpResponseCode = 0;
     String ResponseText = "";
     float rev_server;
     float rev_current;
-
-      String server = "https://api.pg-corp.nohost.me/site/rest-api-update/items/read.php?name=";
-      server += DEVICE_NAME;    
-      server.toCharArray(ServerName, 100); 
+    String server = "https://api.pg-corp.nohost.me/site/rest-api-update/items/read.php?name=";
+    server += DEVICE_NAME;    
+    server.toCharArray(ServerName, 100); 
       
-      httpResponseCode = 0;      
-      HTTPClient http;     
-      http.begin(ServerName);
-      httpResponseCode = http.GET(); // Отправляем запрос 
-      if (httpResponseCode>0){ResponseText = http.getString();}
-      else {Serial.print("Error code: ");  Serial.println(httpResponseCode);}
-      http.end();  // Освобождаем память  
+    httpResponseCode = 0;      
+    HTTPClient http;     
+    http.begin(ServerName);
+    httpResponseCode = http.GET(); // Отправляем запрос 
+    if (httpResponseCode>0){ResponseText = http.getString();}
+    else {Serial.print("Error code: ");  Serial.println(httpResponseCode);}
+    http.end();  // Освобождаем память  
 
-      JsonDocument Json;      
-      DeserializationError error = deserializeJson(Json, ResponseText);      
-       if (error) {
-           Serial.print(F("deserializeJson() failed: "));
-           Serial.println(error.f_str());
-           delay(5000);
-           count_err++;
-           if(count_err > max_err){count_err = 0; F_update = 0;} // сбрасываем счетчик попыток и ждем следующего запроса
-           }
-       if (!error) {  
-          F_update  = 0; 
-          //count_err = 0;
-          String api_version = Json["items"][0]["version"];
-          String api_link = Json["items"][0]["link"];
-          Serial.print("version "); 
-          Serial.println(api_version);
-          Serial.print("link "); 
-          Serial.println(api_link);
-          rev_server = api_version.toFloat();         // версия на сервере
-          rev_current = CURRENT_VERSION_SW.toFloat(); // текущая версия
-          if(rev_server > rev_current){ 
-              Serial.println("Запускаем обновление");              
-              //F_update = 0;            
-              api_link.toCharArray(link_sw, sizeof(link_sw)); 
-              Init_Task17();             
-
-              //t_httpUpdate_return ret = ESPhttpUpdate.update(api_link); // Скачать прошивку и обновится
-              //t_httpUpdate_return ret = ESPhttpUpdate.update("https://api.pg-corp.nohost.me/site/SW-2D/firmware.bin");
-                                         
-              /*switch(ret) {
-                case HTTP_UPDATE_FAILED:
-                Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
-                  Init_Task17();
-                  break;
-                case HTTP_UPDATE_NO_UPDATES:
-                Serial.println("HTTP_UPDATE_NO_UPDATES");
-                  break;
-                case HTTP_UPDATE_OK:
-                Serial.println("HTTP_UPDATE_OK");
-                  break;
-                }
-               //ESP.restart();
-               */
-             }     
-          }
+    JsonDocument Json;      
+    DeserializationError error = deserializeJson(Json, ResponseText);      
+      if (error) {
+        Serial.print(F("deserializeJson() failed: "));
+        Serial.println(error.f_str());
+        delay(5000);
+        count_err++;
+        if(count_err > max_err){count_err = 0; F_update = 0;} // сбрасываем счетчик попыток и ждем следующего запроса
+        }
+      if (!error) {  
+        F_update  = 0;          
+        String api_version = Json["items"][0]["version"];
+        String api_link = Json["items"][0]["link"];
+        Serial.print("version "); 
+        Serial.println(api_version);
+        Serial.print("link "); 
+        Serial.println(api_link);
+        rev_server = api_version.toFloat();         // версия на сервере
+        rev_current = CURRENT_VERSION_SW.toFloat(); // текущая версия
+        if(rev_server > rev_current){               // на сервере более новая прошивка
+          Serial.println("Запускаем обновление"); 
+          api_link.toCharArray(link_sw, sizeof(link_sw)); 
+          Init_Task17();   // Запустить задачу на обновление прошивки  
+          }     
+        }
     xSemaphoreGive(wifi_mutex); // Разблокировать WiFi для других задач
-    }     
+  }     
 } 
