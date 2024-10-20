@@ -10,7 +10,7 @@ String VERSION_SW = "Software version 3.10";     // Текст для отобр
 
 #define ENABLE_DEBUGING 0 // Если 1 то отладка включена
 #define ENABLE_DEBUG    0 // Если 1 то отладка включена
-#define ENABLE_LOCKING  1 // Если 1 защита установлена
+#define ENABLE_LOCKING  0 // Если 1 защита установлена
 #define ENABLE_DEBUG_UART 0  // Если 1 то отладка обмена по uart включена 
 #define ENABLE_DEBUG_TASK 0  // Если 1 то отладка клавиатуры включена
 #define ENABLE_DEBUG_JSON 0

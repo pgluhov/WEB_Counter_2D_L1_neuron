@@ -1169,10 +1169,8 @@ void Task5code( void * pvParameters ){  // Таймер для записи ло
                vTaskDelay(61000/portTICK_PERIOD_MS); 
                break;      
       case 20: save_data_period_in_queue(); vTaskDelay(61000/portTICK_PERIOD_MS); break;      
-      case 40: save_data_period_in_queue(); vTaskDelay(61000/portTICK_PERIOD_MS); break;      
-
-      
-      case 5: save_data_period_in_queue(); F_update=1; vTaskDelay(61000/portTICK_PERIOD_MS); break;    // тест  
+      case 40: save_data_period_in_queue(); vTaskDelay(61000/portTICK_PERIOD_MS); break;
+      //case 5: save_data_period_in_queue(); F_update=1; vTaskDelay(61000/portTICK_PERIOD_MS); break;    // тест  
       //case 59: save_data_period_in_queue(); F_update=1; vTaskDelay(61000/portTICK_PERIOD_MS); break;    // тест  
       }
     }   
