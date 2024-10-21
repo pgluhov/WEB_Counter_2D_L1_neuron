@@ -451,8 +451,8 @@ void web_page_user() {
 
    else if (portal.uri("/plot")) {
    // Выборка данных 
-   Serial.print("График из файла ");
-   Serial.println(ArrPachFileName[FileIsActive]);
+   //Serial.print("График из файла ");
+   //Serial.println(ArrPachFileName[FileIsActive]);
 
    char buffname[50];
    ArrPachFileName[FileIsActive].toCharArray(buffname, 50);    
@@ -545,8 +545,8 @@ if (portal.form("/wificonf")) {  // Параметры WiFi
     portal.copyStr("wifi_ap", secret.ssid_ap, sizeof(secret.ssid_ap)); 
     portal.copyStr("wifi_pswAp", secret.pass_ap, sizeof(secret.pass_ap));      
     portal.copyBool("swap", secret.SW_AP);
-    if (secret.SW_STA == 1 && F_init_sta==0){INIT_STA_WiFi(); Serial.println("INIT_STA_WiFi()");}
-    if (secret.SW_STA == 0){secret.SW_AP = 1; WiFi.disconnect(); F_init_sta=0; Connected_WiFi = "xxx.xxx.xxx.xxx"; Serial.println("WiFi.disconnect()");}
+    if (secret.SW_STA == 1 && F_init_sta==0){INIT_STA_WiFi(); /*Serial.println("INIT_STA_WiFi()")*/;}
+    if (secret.SW_STA == 0){secret.SW_AP = 1; WiFi.disconnect(); F_init_sta=0; Connected_WiFi = "xxx.xxx.xxx.xxx"; /*Serial.println("WiFi.disconnect()")*/;}
     F_alert_save = 1;
     EEPROM.put(0, secret);                      
     EEPROM.commit(); 
@@ -649,34 +649,34 @@ if (portal.click("swsound")){    // Установка вкл/выкл звук�
     portal.copyBool("swsound", secret.SW_SOUND);
     EEPROM.put(0, secret);  // сохраняем
     EEPROM.commit();        // записываем
-    Serial.print("Переключатель звука ");              
-    Serial.println(secret.SW_SOUND);      
+    //Serial.print("Переключатель звука ");              
+    //Serial.println(secret.SW_SOUND);      
   }
 
 if (portal.click("swclean")){    // Установка вкл/выкл звука
     portal.copyBool("swclean", secret.SW_CLEAN_DAY);
     EEPROM.put(0, secret);  // сохраняем
     EEPROM.commit();        // записываем
-    Serial.print("Переключатель сброс суточного счетчика ");              
-    Serial.println(secret.SW_CLEAN_DAY);      
+    //Serial.print("Переключатель сброс суточного счетчика ");              
+    //Serial.println(secret.SW_CLEAN_DAY);      
   }
 
 if (portal.click("swespnow")){   // Установка вкл/выкл ESP NOW
     portal.copyBool("swespnow", secret.SW_ESP_NOW);
     EEPROM.put(0, secret);  // сохраняем
     EEPROM.commit();        // записываем
-    Serial.print("Переключатель ESP NOW ");              
-    Serial.println(secret.SW_ESP_NOW);      
+    //Serial.print("Переключатель ESP NOW ");              
+    //Serial.println(secret.SW_ESP_NOW);      
   }
 
 if (portal.click("btnScan")){    // Сканирование WiFi сетей
-  Serial.print("Сканирование...");
+    //Serial.print("Сканирование...");
     F_alert = 1;
     secret.SW_STA = 0;
     WiFi.disconnect(); 
     F_init_sta=0; 
     Connected_WiFi = "xxx.xxx.xxx.xxx"; 
-    Serial.println("WiFi.disconnect()");
+    //Serial.println("WiFi.disconnect()");
     EEPROM.put(0, secret);  // сохраняем
     EEPROM.commit();        // записываем
     Init_Task13();
@@ -691,10 +691,10 @@ if (portal.click("btnCallsens")){  // Колибровка сенсора
     //vTaskSuspend(Task1);
     //vTaskSuspend(Task2);
     //Serial.println("Остановка основных задач по опросу сенсора");
-    Serial.print("Калибровка сенсора запущена на расстоянии ");
+    //Serial.print("Калибровка сенсора запущена на расстоянии ");
     F_Call = 1;
     //portal.copyInt("Distanse", secret.DistanseCallReal); 
-    Serial.println(secret.DistanseCallReal);   
+    //Serial.println(secret.DistanseCallReal);   
     Init_Task14();    
   }
 
@@ -1032,8 +1032,8 @@ void Task3code( void * pvParameters ){  // Функция записи лога 
     if(secret.SW_Tx_SD == 1 && Data_Waiting[num_string_now].status_send_sd==0){
       Data_Waiting[num_string_now].status_send_sd=1;
       listDir(LittleFS, "/", 1);
-      Serial.print("Файлов в папке: ");
-      Serial.println(file_is_dir);       
+      //Serial.print("Файлов в папке: ");
+      //Serial.println(file_is_dir);       
       char nameBuff[50];
       char buff[100];
       
@@ -1053,7 +1053,7 @@ void Task3code( void * pvParameters ){  // Функция записи лога 
       str_to_csv += "\n";   
       str_to_csv.toCharArray(buff, 100); 
       name_file.toCharArray(nameBuff, 50);    
-      Serial.println(nameBuff);
+      //Serial.println(nameBuff);
       
       if(appendFile(LittleFS, nameBuff, buff) == -1){
         vTaskDelay(100/portTICK_PERIOD_MS);
@@ -1111,12 +1111,12 @@ void Task4code( void * pvParameters ){  // Синхронизация даты �
       struct tm timeinfo;
       
        if(!getLocalTime(&timeinfo)){
-        Serial.println("Failed to obtain time"); 
+        //Serial.println("Failed to obtain time"); 
         secret.Led_mode = WAITING_MODE;
         F_time_update_failed = 1;}
         
-       if(getLocalTime(&timeinfo))
-       {Serial.println("Time updated"); 
+       if(getLocalTime(&timeinfo)){
+       //Serial.println("Time updated"); 
        secret.Led_mode = NORMAL_MODE;
        F_time_update_failed = 0;}
        
@@ -1207,7 +1207,7 @@ void Task6code( void * pvParameters ){  // Отслеживание кнопки
     if ( status_input == 1 ){count_reboot = 0;}
 
   if (count_reboot >= 5){
-    Serial.println("DEFAULT SETTING REBOOT...");    
+    //Serial.println("DEFAULT SETTING REBOOT...");    
     int key = secret.initKey;    
     secret.initKey = key+1;        
     EEPROM.put(0, secret);  // сохраняем
@@ -1667,9 +1667,9 @@ void Task17code( void * pvParameters ){ // Отложенная задача д�
     
     vTaskDelay(3000/portTICK_PERIOD_MS);
     long wait_ms = random(60000, 1800000);
-    Serial.print("задержка обновления: ");
-    Serial.print(wait_ms/1000);
-    Serial.println(" сек");    
+    //Serial.print("задержка обновления: ");
+    //Serial.print(wait_ms/1000);
+    //Serial.println(" сек");    
     vTaskDelay(wait_ms/portTICK_PERIOD_MS);       
 
     if( WiFi.status() == WL_CONNECTED ){
@@ -1677,7 +1677,7 @@ void Task17code( void * pvParameters ){ // Отложенная задача д�
       t_httpUpdate_return ret = ESPhttpUpdate.update(link_sw);        
         switch(ret) {
             case HTTP_UPDATE_FAILED:
-                Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+                //Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
                 count_err++;
                 if(count_err <= max_err){F_update = 1;} // повторяем попытку обновления
                 if(count_err > max_err) {count_err = 0; // Достигнуто максимальное количество попыток перезагружаем контроллер
@@ -1689,16 +1689,16 @@ void Task17code( void * pvParameters ){ // Отложенная задача д�
                     ESP.restart();
                     }
                   }
-                Serial.println();
-                Serial.println("не получается обновиться");
-                Serial.print("count_err ");
-                Serial.println(count_err);
+                //Serial.println();
+                //Serial.println("не получается обновиться");
+                //Serial.print("count_err ");
+                //Serial.println(count_err);
                 break;
             case HTTP_UPDATE_NO_UPDATES:
-                Serial.println("HTTP_UPDATE_NO_UPDATES");
+                //Serial.println("HTTP_UPDATE_NO_UPDATES");
                 break;
             case HTTP_UPDATE_OK:
-                Serial.println("HTTP_UPDATE_OK");
+                //Serial.println("HTTP_UPDATE_OK");
                 if(secret.update_sw == 1){
                   secret.update_sw = 0; 
                   EEPROM.put(0, secret); 
@@ -1729,35 +1729,35 @@ xTaskCreatePinnedToCore( //создаем задачу, которая буде�
 //---------------------------------------Работа WiFi-----------------------------------------------------------------
 
 void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info){
-  Serial.println("Connected to STA successfully!");   
+  //Serial.println("Connected to STA successfully!");   
 }
 
 void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info){
-  Serial.print("WiFi connected");
-  Serial.print(" IP address: ");
+  //Serial.print("WiFi connected");
+  //Serial.print(" IP address: ");
   Connected_WiFi  = WiFi.localIP().toString();   
-  Serial.println(Connected_WiFi);  
+  //Serial.println(Connected_WiFi);  
 }
 
 void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
-  Serial.println("Disconnected from WiFi access point");
-  Serial.print("WiFi lost connection. Reason: ");
-  Serial.println(info.wifi_sta_disconnected.reason);
-  Serial.println("Trying to Reconnect");
+  //Serial.println("Disconnected from WiFi access point");
+  //Serial.print("WiFi lost connection. Reason: ");
+  //Serial.println(info.wifi_sta_disconnected.reason);
+  //Serial.println("Trying to Reconnect");
   Connected_WiFi = "xxx.xxx.xxx.xxx";
   if (secret.SW_STA == 1){WiFi.begin(secret.ssid_sta, secret.pass_sta);}
 }
 
 void WiFi_AP_Start(WiFiEvent_t event, WiFiEventInfo_t info){
-  Serial.println("ESP32 soft-AP start");  
+  //Serial.println("ESP32 soft-AP start");  
 }
 
 void WiFi_AP_Connected(WiFiEvent_t event, WiFiEventInfo_t info){
-  Serial.println("Connected to AP successfully!");  
+  //Serial.println("Connected to AP successfully!");  
 }
 
 void WiFi_AP_Disconnected(WiFiEvent_t event, WiFiEventInfo_t info){
-  Serial.println("Disconnected from WiFi AP");
+  //Serial.println("Disconnected from WiFi AP");
 }
 
 void INIT_STA_WiFi(){
@@ -1779,8 +1779,8 @@ void INIT_AP_WiFi(){
     IPAddress local_IP(192,168,0,100); // IP в режиме точки доступа
     IPAddress gateway(192,168,0,1);
     IPAddress subnet(255,255,255,0);
-    Serial.print("Setting soft-AP configuration ... ");                                   //  "Задаем настройки программной точки доступа ... "
-    Serial.println(WiFi.softAPConfig(local_IP, gateway, subnet) ? "Ready" : "Failed!");   //  "Готово" : "Задать настройки не удалось"                                                    
+    //Serial.print("Setting soft-AP configuration ... ");                                   //  "Задаем настройки программной точки доступа ... "
+    //Serial.println(WiFi.softAPConfig(local_IP, gateway, subnet) ? "Ready" : "Failed!");   //  "Готово" : "Задать настройки не удалось"                                                    
     WiFi.softAP(secret.ssid_ap, secret.pass_ap);
     if (F_added_event_ap == 0){ // создать евенты только один раз
       F_added_event_ap = 1;
@@ -1842,13 +1842,13 @@ void IRAM_ATTR serialEvent(){
           Serial.println("serialEvent Отправлены данные в очередь ");      
           #endif    
           }
-        else if(ret == errQUEUE_FULL){Serial.println("Не удалось отправить данные в очередь из serialEvent()");
+        else if(ret == errQUEUE_FULL){/*Serial.println("Не удалось отправить данные в очередь из serialEvent()");*/
         } 
       }
-      else if (QueueHandleUart != NULL && uxQueueSpacesAvailable(QueueHandleUart) == 0){Serial.println("Очередь отсутствует или нет свободного места");}
+      else if (QueueHandleUart != NULL && uxQueueSpacesAvailable(QueueHandleUart) == 0){/*Serial.println("Очередь отсутствует или нет свободного места");*/}
       } 
    else {
-      Serial.println("CRC ERROR");
+      //Serial.println("CRC ERROR");
      }
    }  
 }
@@ -1860,20 +1860,20 @@ void INIT_SLAVE_ESP_NOW(){
   for (int i=0; i<6; i++){MasterAddress[i] = (byte)secret.MacAdressMaster[i];}  
     
   if (esp_now_init() != ESP_OK) {  
-    Serial.println("Error initializing ESP-NOW"); return;
+    //Serial.println("Error initializing ESP-NOW"); return;
     }
   if (esp_now_init() == ESP_OK) {   // Init ESP-NOW
-    Serial.print("WiFi.macAddress ");
-    Serial.println(WiFi.macAddress());
-    Serial.println("Success initializing ESP-NOW");
+    //Serial.print("WiFi.macAddress ");
+    //Serial.println(WiFi.macAddress());
+    //Serial.println("Success initializing ESP-NOW");
     }  
   esp_now_register_send_cb(OnDataSent); 
 
   peerInfo.channel = 0;  
   peerInfo.encrypt = false;  
   memcpy(peerInfo.peer_addr, MasterAddress, 6);
-    if (esp_now_add_peer(&peerInfo) != ESP_OK){Serial.println("Failed to add peer 1");}
-    if (esp_now_add_peer(&peerInfo) == ESP_OK){Serial.println("Added peer 1 ");} 
+    if (esp_now_add_peer(&peerInfo) != ESP_OK){/*Serial.println("Failed to add peer 1");*/}
+    if (esp_now_add_peer(&peerInfo) == ESP_OK){/*Serial.println("Added peer 1 ");*/} 
   
   esp_now_register_recv_cb(OnDataRecv); // Register for a callback function that will be called when data is received
    
@@ -2244,7 +2244,7 @@ void readAndParseData(fs::FS &fs, const char * path){
     File file = fs.open(path);
     if(!file || file.isDirectory()){
       xSemaphoreGive(flash_mutex);
-      Serial.println("- failed to open file for reading");
+      //Serial.println("- failed to open file for reading");
       return;
     }
     while(file.available()){
@@ -2360,7 +2360,7 @@ void setup() {
     Serial.println("НЕ ЛИЦЕНЗИОННАЯ КОПИЯ"); 
     QueueHandleUart = xQueueCreate(QueueElementSizeUart, sizeof(message_uart)); // Создайте очередь, которая будет содержать <Размер элемента очереди> количество элементов, каждый из которых имеет размер `message_t`, и передайте адрес в <QueueHandleKeyboard>.
     if(QueueHandleUart == NULL){  // Проверьте, была ли успешно создана очередь
-      Serial.println("QueueHandleUart could not be created. Halt.");
+      //Serial.println("QueueHandleUart could not be created. Halt.");
       while(1) delay(1000);   // Halt at this point as is not possible to continue
       }
   Init_Task16();
@@ -2436,14 +2436,14 @@ void loop() {
     http.begin(ServerName);
     httpResponseCode = http.GET(); // Отправляем запрос 
     if (httpResponseCode>0){ResponseText = http.getString();}
-    else {Serial.print("Error code: ");  Serial.println(httpResponseCode);}
+    else {/*Serial.print("Error code: ");  Serial.println(httpResponseCode);*/}
     http.end();  // Освобождаем память  
 
     JsonDocument Json;      
     DeserializationError error = deserializeJson(Json, ResponseText);      
       if (error) {
-        Serial.print(F("deserializeJson() failed: "));
-        Serial.println(error.f_str());
+        //Serial.print(F("deserializeJson() failed: "));
+        //Serial.println(error.f_str());
         delay(5000);
         count_err++;
         if(count_err > max_err){count_err = 0; F_update = 0;} // сбрасываем счетчик попыток и ждем следующего запроса
@@ -2452,14 +2452,14 @@ void loop() {
         F_update  = 0;          
         String api_version = Json["items"][0]["version"];
         String api_link = Json["items"][0]["link"];
-        Serial.print("version "); 
-        Serial.println(api_version);
-        Serial.print("link "); 
-        Serial.println(api_link);
+        //Serial.print("version "); 
+        //Serial.println(api_version);
+        //Serial.print("link "); 
+        //Serial.println(api_link);
         rev_server = api_version.toFloat();         // версия на сервере
         rev_current = CURRENT_VERSION_SW.toFloat(); // текущая версия
         if(rev_server > rev_current){               // на сервере более новая прошивка
-          Serial.println("Запускаем обновление"); 
+          //Serial.println("Запускаем обновление"); 
           api_link.toCharArray(link_sw, sizeof(link_sw)); 
           Init_Task17();   // Запустить задачу на обновление прошивки  
           }     
