@@ -161,8 +161,8 @@ bool update_run_write = 0;
 bool soundRun = 0;
 int indoor_period_record = 0;  // счетчик периода 10 мин
 int outdoor_period_record = 0; // счетчик периода 10 мин
-uint64_t chip;              // chip id
-bool F_clean_day = 0;       // флаг очистки счетчика в 00:00
+uint64_t chip;                 // chip id
+bool F_clean_day = 0;          // флаг очистки счетчика в 00:00
 bool F_alert = 0;
 bool F_alert_save = 0;
 bool F_Call = 0;
@@ -789,14 +789,13 @@ void Task1code( void * pvParameters ){  // Функция работы с TOF с
   pinMode(shut_tof_pin, OUTPUT);
   digitalWrite(shut_tof_pin, HIGH);
   pinMode(int_tof_pin, INPUT);
-  myTofSensor.setPersonThreshold(secret.Zone_MaxThreshold);   // Расстояние до головы человека
-  myTofSensor.setDoorThreshold(secret.Zone_MinThreshold);     // Расстояние до начала двери
-  myTofSensor.setZoneArea(secret.ZoneX, secret.ZoneY);        // Размер зон
-  myTofSensor.setOpticalCenters(secret.Z1_ROI, secret.Z2_ROI);// Центра зон  
+  myTofSensor.setPersonThreshold(secret.Zone_MaxThreshold);    // Расстояние до головы человека
+  myTofSensor.setDoorThreshold(secret.Zone_MinThreshold);      // Расстояние до начала двери
+  myTofSensor.setZoneArea(secret.ZoneX, secret.ZoneY);         // Размер зон
+  myTofSensor.setOpticalCenters(secret.Z1_ROI, secret.Z2_ROI); // Центра зон  
   bool stat;
   if(secret.F_tof_callibration==1){stat = myTofSensor.setup(secret.SensorOffset,secret.SensorXTalk);} // Инициализация сенсора с заданной калибровкой
-  if(secret.F_tof_callibration==0){stat = myTofSensor.setup();} // Инициализация сенсора без калибровки
-  
+  if(secret.F_tof_callibration==0){stat = myTofSensor.setup();} // Инициализация сенсора без калибровки  
   if (stat == false){secret.Led_mode = ERROR_MODE;}
   peopleCounter.setSensor(&myTofSensor);
   vTaskDelay(5000/portTICK_PERIOD_MS);

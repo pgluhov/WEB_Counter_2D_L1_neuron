@@ -21,7 +21,7 @@ PeopleCounter::PeopleCounter(){}
 void PeopleCounter::setSensor(Sensor* sensor){
   mySensor = sensor;
 }
-  
+
 int PeopleCounter::update(){
   
   if(mySensor -> dataAvailable()){
@@ -45,7 +45,7 @@ int PeopleCounter::update(){
         return event;
        }
       exit = event;
-      int result = evaluate(entry,exit);
+      int result = evaluate(entry, exit);
       count += result;
     }
 
@@ -56,10 +56,6 @@ int PeopleCounter::update(){
  }
  return RESULT_FAIL;
 }
-
-//int PeopleCounter::getCount(){
-//    return count;
-//  }
 
 int PeopleCounter::getSingleZoneEvent(bool prevState,bool currentState){
   if(prevState == currentState){

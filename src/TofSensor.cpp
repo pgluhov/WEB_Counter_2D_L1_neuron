@@ -9,8 +9,8 @@ int person_threshold = 1200;
 int door_threshold = 200;
 int zoneX = 14; 
 int zoneY =7;  
-//uint8_t opticalCenters[2] = {68,188};
-uint8_t opticalCenters[2] = {60,196}; // Перезаписываются из EEPROM setOpticalCenters(int valueZ1, int valueZ2)
+uint8_t opticalCenters[2] = {68,188};
+//uint8_t opticalCenters[2] = {60,196}; // Перезаписываются из EEPROM setOpticalCenters(int valueZ1, int valueZ2)
 
 TofSensor::TofSensor():
 Sensor(),myTofSensor()
@@ -63,7 +63,7 @@ int TofSensor::CallXTalk(int distsnse){
 }
 
 bool TofSensor::setup(int SensOffset, int SensXTalk){
-      //Wire.setClock(400000); 
+      
       Wire.begin(21,22,400000); //SDA, SCL
       delay(100);
       if(myTofSensor.begin() != 0){
@@ -74,39 +74,35 @@ bool TofSensor::setup(int SensOffset, int SensXTalk){
       
       myTofSensor.setOffset(SensOffset);    
       myTofSensor.setXTalk(SensXTalk);     
-      myTofSensor.setDistanceModeLong();         // Set to 3,8M range 
-      //myTofSensor.setDistanceModeShort();      // Set to 1,3M range 
-      myTofSensor.setTimingBudgetInMs(20);       //Set the timing budget for a measurement
-      //myTofSensor.setIntermeasurementPeriod(40); //Set time between measurements in ms         
+      myTofSensor.setDistanceModeLong();    // Set to 3,8M range
+      myTofSensor.setTimingBudgetInMs(20);  //Set the timing budget for a measurement        
       startMeasurement();
       return true;
   }
 
 bool TofSensor::setup(){
-      //Wire.setClock(400000); 
-      Wire.begin(21,22,400000); //SDA, SCL
-      delay(100);
-      if(myTofSensor.begin() != 0){
-        delay(100);
-        Serial.println("Sensor error");
-        return false;        
-      } 
-                  
-      myTofSensor.setDistanceModeLong();        // Set to 3,8M range 
-      //myTofSensor.setDistanceModeShort();     // Set to 1,3M range 
-      myTofSensor.setTimingBudgetInMs(20);      //Set the timing budget for a measurement
-      //myTofSensor.setIntermeasurementPeriod(40); //Set time between measurements in ms         
-      startMeasurement();
-      return true;
+      
+  Wire.begin(21,22,400000); //SDA, SCL
+  delay(100);
+  if(myTofSensor.begin() != 0){
+    delay(100);
+    Serial.println("Sensor error");
+    return false;        
+    }          
+  myTofSensor.setDistanceModeLong();        // Set to 3,8M range       
+  myTofSensor.setTimingBudgetInMs(20);      // Set the timing budget for a measurement            
+  startMeasurement();
+  return true;
   }
 
 void TofSensor::update(){
-  //if(myTofSensor.checkForDataReady()){
-  while (!myTofSensor.checkForDataReady()){/* code */}        
+  if(myTofSensor.checkForDataReady()){
+  //while (!myTofSensor.checkForDataReady()){/* code */}        
   getResult();
   if( (currentZone == 1) && !newDataAvailable){newDataAvailable = true;}        
   currentZone = !currentZone; // переключаем на следующую зону
   startMeasurement();
+  }
 }
 
 void TofSensor::getResult(){
