@@ -1266,7 +1266,7 @@ void Task7code(void* pvParameters) {   // Отправка данных ESP NOW
   }
 }
 
-void Init_Task7() {  //создаем задачу
+void Init_Task7() {
   xTaskCreatePinnedToCore(
     Task7code, /* Функция задачи. */
     "Task7",   /* Ее имя. */
@@ -1314,7 +1314,7 @@ void Task8code(void* pvParameters) {   // Watch Dog обмена данными 
   }
 }
 
-void Init_Task8() {  //создаем задачу
+void Init_Task8() {
   xTaskCreatePinnedToCore(
     Task8code, /* Функция задачи. */
     "Task8",   /* Ее имя. */
@@ -1352,7 +1352,7 @@ void Task9code(void* pvParameters) {   // Функция для работы з�
   }
 }
 
-void Init_Task9() {  //создаем задачу
+void Init_Task9() {
   xTaskCreatePinnedToCore(
     Task9code, /* Функция задачи. */
     "Task9",   /* Ее имя. */
@@ -1410,7 +1410,7 @@ void Task10code(void* pvParameters) {   // Функция для работы с
   }
 }
 
-void Init_Task10() {  //создаем задачу
+void Init_Task10() {
   xTaskCreatePinnedToCore(
     Task10code, /* Функция задачи. */
     "Task10",   /* Ее имя. */
@@ -1494,7 +1494,7 @@ void Task11code(void* pvParameters) {   // Отслеживание состоя
   }
 }
 
-void Init_Task11() {  //создаем задачу
+void Init_Task11() {
   xTaskCreatePinnedToCore(
     Task11code, /* Функция задачи. */
     "Task11",   /* Ее имя. */
@@ -1648,7 +1648,7 @@ void Task16code(void* pvParameters) {  // Обработка приема дан
   }  
 }
 
-void Init_Task16() {  //создаем задачу
+void Init_Task16() {
   xTaskCreatePinnedToCore(
     Task16code, /* Функция задачи. */
     "Task16",   /* Ее имя. */
