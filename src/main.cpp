@@ -4,6 +4,7 @@
 #include "FS_function.h"
 #include "errorCodes.h"
 #include "peopleCounter.h"
+//#include "automate.h"
 TofSensor myTofSensor;
 PeopleCounter peopleCounter;
 

@@ -1,12 +1,13 @@
-#include "peopleCounter.h"
 #include "Arduino.h"
+#include "peopleCounter.h"
 //#include "errorCodes.h"
+#include "automate.h"
 
 #define RESULT_OK 0
 #define RESULT_FAIL -1
 #define PERSON_TOO_FAST -2
 
-#define DEBUG_COUNTER 0
+#define DEBUG_COUNTER 1
 
 enum zoneNames{ZONE1 = 0, ZONE2 = 1};
 enum events{NONE = 0,ENTERED = 1,LEFT = 2};
@@ -15,8 +16,7 @@ enum globalEvents{EnteredZ1 = 1, LeftZ1 = 2, EnteredZ2 = 3, LeftZ2 = 4};
 int counter_outdoor = 0;
 int counter_indoor = 0;
 
-PeopleCounter::PeopleCounter(){ 
-}
+PeopleCounter::PeopleCounter(){}
 
 void PeopleCounter::setSensor(Sensor* sensor){
   mySensor = sensor;
@@ -25,13 +25,14 @@ void PeopleCounter::setSensor(Sensor* sensor){
 int PeopleCounter::update(){
   
   if(mySensor -> dataAvailable()){
+
     int Z1,Z2,inside;
     
     Z1 = mySensor -> getZone1();
     Z2 = mySensor -> getZone2();
     inside = Z1 || Z2;
 
-    if( !prevInside && inside ){
+    if( !prevInside && inside ){       
        int event = getGlobalEvent(Z1,Z2);
        if(event < 0){
         return event;

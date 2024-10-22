@@ -1,4 +1,5 @@
-#define DEBUG_distance 0
+#define DEBUG_distance 1
+#define DEBUG_opticalCenters 0
 
 #include "TofSensor.h"
 #include <Arduino.h>
@@ -9,7 +10,7 @@ int door_threshold = 200;
 int zoneX = 14; 
 int zoneY =7;  
 //uint8_t opticalCenters[2] = {68,188};
-uint8_t opticalCenters[2] = {60,196};
+uint8_t opticalCenters[2] = {60,196}; // Перезаписываются из EEPROM setOpticalCenters(int valueZ1, int valueZ2)
 
 TofSensor::TofSensor():
 Sensor(),myTofSensor()
@@ -100,44 +101,64 @@ bool TofSensor::setup(){
   }
 
 void TofSensor::update(){
-      if(myTofSensor.checkForDataReady()){
-        getResult();
-        if( (currentZone == 1) && !newDataAvailable){
-          newDataAvailable = true;
-        }        
-        currentZone = !currentZone;
-        startMeasurement();     
-      }
+  //if(myTofSensor.checkForDataReady()){
+  while (!myTofSensor.checkForDataReady()){/* code */}        
+  getResult();
+  if( (currentZone == 1) && !newDataAvailable){newDataAvailable = true;}        
+  currentZone = !currentZone; // переключаем на следующую зону
+  startMeasurement();
+}
+
+void TofSensor::getResult(){
+  uint16_t distance = myTofSensor.getDistance();
+  if(currentZone == 0){zone1 = personPresent(distance); // 0-1
+    distance_zone1 = distance;
+    #if (DEBUG_distance == 1)
+    Serial.print("Zone1: "); Serial.print(distance);
+    Serial.print(" ("); Serial.print(zone1);
+    Serial.print(")");
+    #endif
+    }
+  if(currentZone == 1){zone2 = personPresent(distance); // 0-1
+    distance_zone2 = distance;     
+    #if (DEBUG_distance == 1)
+    Serial.print("  Zone2: "); Serial.print(distance);
+    Serial.print(" ("); Serial.print(zone2);
+    Serial.println(")");
+    #endif
+    }
 }
 
 void TofSensor::startMeasurement(){
   myTofSensor.stopRanging();
   myTofSensor.clearInterrupt();
   myTofSensor.setROI(zoneX,zoneY,opticalCenters[currentZone]);
-  delay(5);
+  delay(1);
+  #if (DEBUG_opticalCenters == 1)
+  Serial.println();
+  Serial.print("opticalCenters[");
+  Serial.print(opticalCenters[currentZone]);
+  Serial.print("]");
+  Serial.println();
+  #endif
   myTofSensor.startRanging();
 }
 
-void TofSensor::getResult(){
-  int distance = myTofSensor.getDistance();
-  if(currentZone == 0){zone1 = personPresent(distance); // 0-1
-    distance_zone1 = distance;
-    #if (DEBUG_distance == 1)
-    Serial.print("Zone1: ");Serial.print(distance);
-    #endif    
-  }
-  else{  
-    distance_zone2 = distance;  
-    zone2 = personPresent(distance); // 0-1
-    #if (DEBUG_distance == 1)
-    Serial.print("  Zone2: ");Serial.println(distance);
-    #endif
-  }
-}
-
-bool TofSensor::personPresent(int distance){
+bool TofSensor::personPresent(uint16_t distance){
+  
   //return ( (door_threshold < distance) && (distance < person_threshold) );
-  return distance < person_threshold ;
+  //return distance < person_threshold ; 
+
+  //if ((door_threshold < distance) && (distance < person_threshold))
+  if (distance < person_threshold)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+  
 }
 
  /* TofSensor имеет приемную решетку, состоящую из 16x16 однофотонных диодов.

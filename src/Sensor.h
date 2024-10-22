@@ -13,7 +13,7 @@ public:
 protected:
   bool zone1 = false;
   bool zone2 = false;
-  bool newDataAvailable = false;
+  bool newDataAvailable = false; // флаг true когда обе зоны измерены
 
 };
 

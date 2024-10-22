@@ -26,12 +26,12 @@ public:
 
 private:
   SFEVL53L1X myTofSensor;
-  int currentZone = 0;
+  int currentZone = 0;   // Номер текущей зоны 0 или 1
   int distance_zone1 = 0;
   int distance_zone2 = 0;
   void startMeasurement();
   void getResult();
-  bool personPresent(int distance);
+  bool personPresent(uint16_t distance);
 };
 
 #endif
