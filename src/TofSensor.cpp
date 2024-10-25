@@ -1,4 +1,4 @@
-#define DEBUG_distance 1
+#define DEBUG_distance 0
 #define DEBUG_opticalCenters 0
 
 #include "TofSensor.h"
